@@ -10,6 +10,7 @@ import {
   PanelResizeHandle,
 } from 'react-resizable-panels';
 
+import SkedgeAd from '@/components/common/SkedgeAd/skedgeAd';
 import Compare from '@/components/compare/Compare/compare';
 import DashboardEmpty from '@/components/dashboard/DashboardEmpty/dashboardEmpty';
 import DashboardError from '@/components/dashboard/DashboardError/dashboardError';
@@ -939,6 +940,7 @@ export const Dashboard: NextPage<{ pageTitle: string }> = ({
         />
         <main className="p-4">{contentComponent}</main>
       </div>
+      <SkedgeAd />
     </>
   );
 };

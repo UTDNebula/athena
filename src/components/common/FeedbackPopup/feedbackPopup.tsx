@@ -7,56 +7,41 @@ import {
   SnackbarContent,
   TextField,
 } from '@mui/material';
+import Link from 'next/link';
 import React, { useEffect, useState } from 'react';
 
 export default function FeedbackPopup() {
-  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [open, setOpen] = useState(false);
 
   //Open after 60 seconds if not already asked/close (based on localStorage)
   useEffect(() => {
-    const previousFeedback = localStorage.getItem('feedback');
-    let ask = previousFeedback === null;
-    if (previousFeedback !== null) {
-      const parsedFeedback = JSON.parse(previousFeedback);
-      if (
-        parsedFeedback !== null &&
-        parsedFeedback.value !== 'closed' &&
-        parsedFeedback.value !== 'submitted'
-      ) {
+    const previous = localStorage.getItem('feedback');
+    let ask = previous === null;
+    if (previous !== null) {
+      const parsed = JSON.parse(previous);
+      if (parsed !== null && parsed.value === 'error') {
         ask = true;
       }
     }
     if (ask) {
       const timer = setTimeout(() => {
-        setFeedbackOpen(true);
+        setOpen(true);
       }, 1000 * 60); //60 seconds
       return () => clearTimeout(timer);
     }
   }, []);
-  const cacheIndexFeedback = 0; //Increment this to request feedback from all users on next deployment
-
-  //Successfully submitted control
-  const [feedbackSuccessOpen, setFeedbackSuccessOpen] = useState(false);
-  function handleFeedbackSuccessClose(
-    event?: React.SyntheticEvent | Event,
-    reason?: string,
-  ) {
-    if (reason === 'clickaway') {
-      return;
-    }
-    setFeedbackSuccessOpen(false);
-  }
+  const cacheIndex = 0; //Increment this to request feedback from all users on next deployment
 
   //Error submitting control
-  const [feedbackErrorOpen, setFeedbackErrorOpen] = useState(false);
-  function handlefeedbackErrorClose(
+  const [errorOpen, setErrorOpen] = useState(false);
+  function handleErrorClose(
     event?: React.SyntheticEvent | Event,
     reason?: string,
   ) {
     if (reason === 'clickaway') {
       return;
     }
-    setFeedbackErrorOpen(false);
+    setErrorOpen(false);
   }
 
   //Survey answer storage
@@ -65,46 +50,43 @@ export default function FeedbackPopup() {
 
   //Send response to API, store result in localStorage
   function sendFeedback() {
-    return new Promise<void>((resolve, reject) => {
-      fetch('/api/postFeedback', {
-        method: 'POST',
-        body: JSON.stringify({
-          rating: feedbackRating,
-          extra: feedbackExtra,
-          env: process.env.NEXT_PUBLIC_VERCEL_ENV,
-        }),
+    fetch('/api/postFeedback', {
+      method: 'POST',
+      body: JSON.stringify({
+        rating: feedbackRating,
+        extra: feedbackExtra,
+        env: process.env.NEXT_PUBLIC_VERCEL_ENV,
+      }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.message !== 'success') {
+          throw new Error(data.message);
+        }
+        localStorage.setItem(
+          'feedback',
+          JSON.stringify({
+            value: 'submitted',
+            cacheIndex: cacheIndex,
+          }),
+        );
       })
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.message !== 'success') {
-            throw new Error(data.message);
-          }
-          localStorage.setItem(
-            'feedback',
-            JSON.stringify({
-              value: 'submitted',
-              cacheIndex: cacheIndexFeedback,
-            }),
-          );
-          resolve();
-        })
-        .catch((error) => {
-          localStorage.setItem(
-            'feedback',
-            JSON.stringify({
-              value: 'error',
-              cacheIndex: cacheIndexFeedback,
-            }),
-          );
-          console.error('Feedback', error);
-          reject();
-        });
-    });
+      .catch((error) => {
+        setErrorOpen(true);
+        localStorage.setItem(
+          'feedback',
+          JSON.stringify({
+            value: 'error',
+            cacheIndex: cacheIndex,
+          }),
+        );
+        console.error('Feedback', error);
+      });
   }
 
   return (
     <>
-      <Snackbar open={feedbackOpen}>
+      <Snackbar open={open}>
         <SnackbarContent
           className="bg-white dark:bg-haiti text-haiti dark:text-white"
           sx={{
@@ -139,14 +121,13 @@ export default function FeedbackPopup() {
                   />
                   <p className="text-xs">
                     Visit our{' '}
-                    <a
+                    <Link
                       className="underline text-blue-600 hover:text-blue-800 visited:text-purple-600"
-                      href="https://github.com/UTDNebula/utd-trends"
-                      rel="noopener noreferrer"
+                      href="https://github.com/UTDNebula/utd-trends/issues/new/choose"
                       target="_blank"
                     >
                       GitHub
-                    </a>{' '}
+                    </Link>{' '}
                     for more detailed issue reporting.
                   </p>
                 </div>
@@ -156,12 +137,12 @@ export default function FeedbackPopup() {
                   size="small"
                   variant="outlined"
                   onClick={() => {
-                    setFeedbackOpen(false);
+                    setOpen(false);
                     localStorage.setItem(
                       'feedback',
                       JSON.stringify({
                         value: 'closed',
-                        cacheIndex: cacheIndexFeedback,
+                        cacheIndex: cacheIndex,
                       }),
                     );
                   }}
@@ -174,14 +155,8 @@ export default function FeedbackPopup() {
                   variant="contained"
                   disabled={feedbackRating === null}
                   onClick={() => {
-                    setFeedbackOpen(false);
-                    sendFeedback()
-                      .then(() => {
-                        setFeedbackSuccessOpen(true);
-                      })
-                      .catch(() => {
-                        setFeedbackErrorOpen(true);
-                      });
+                    setOpen(false);
+                    sendFeedback();
                   }}
                 >
                   Submit
@@ -192,25 +167,12 @@ export default function FeedbackPopup() {
         />
       </Snackbar>
       <Snackbar
-        open={feedbackSuccessOpen}
+        open={errorOpen}
         autoHideDuration={6000}
-        onClose={handleFeedbackSuccessClose}
+        onClose={handleErrorClose}
       >
         <Alert
-          onClose={handleFeedbackSuccessClose}
-          severity="success"
-          sx={{ width: '100%' }}
-        >
-          Feedback submitted. Thank you!
-        </Alert>
-      </Snackbar>
-      <Snackbar
-        open={feedbackErrorOpen}
-        autoHideDuration={6000}
-        onClose={handlefeedbackErrorClose}
-      >
-        <Alert
-          onClose={handlefeedbackErrorClose}
+          onClose={handleErrorClose}
           severity="error"
           sx={{ width: '100%' }}
         >
