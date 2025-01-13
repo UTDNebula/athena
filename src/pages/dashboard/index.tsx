@@ -17,7 +17,7 @@ import Carousel from '@/components/navigation/Carousel/carousel';
 import TopMenu from '@/components/navigation/topMenu/topMenu';
 import CourseOverview from '@/components/overview/CourseOverview/courseOverview';
 import ProfessorOverview from '@/components/overview/ProfessorOverview/professorOverview';
-import Filters from '@/components/search/Filters/filters';
+import Filters, { compareSemesters } from '@/components/search/Filters/filters';
 import SearchResultsTable from '@/components/search/SearchResultsTable/searchResultsTable';
 import { compareColors } from '@/modules/colors/colors';
 import fetchWithCache, {
@@ -164,6 +164,9 @@ function calculateGrades(grades: GradesData, academicSessions?: string[]) {
     gpa: gpa,
     total: total,
     grade_distribution: grade_distribution,
+    most_recent_semester: grades
+      .map((session) => session._id)
+      .sort((a, b) => compareSemesters(b, a))[0],
   };
 }
 export type GradesType = {
@@ -171,6 +174,7 @@ export type GradesType = {
   total: number;
   grade_distribution: number[];
   grades: GradesData;
+  most_recent_semester: string;
 };
 //Fetch grades by academic session from nebula api
 function fetchGradesData(

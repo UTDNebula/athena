@@ -20,6 +20,7 @@ import Rating from '@/components/common/Rating/rating';
 import SingleGradesInfo from '@/components/common/SingleGradesInfo/singleGradesInfo';
 import SingleProfInfo from '@/components/common/SingleProfInfo/singleProfInfo';
 import TableSortLabel from '@/components/common/TableSortLabel/tableSortLabel';
+import { displayAcademicSessionName } from '@/components/search/Filters/filters';
 import { useRainbowColors } from '@/modules/colors/colors';
 import gpaToLetterGrade from '@/modules/gpaToLetterGrade/gpaToLetterGrade';
 import {
@@ -156,38 +157,68 @@ function Row({
           </div>
         </TableCell>
         <TableCell component="th" scope="row" className="w-full border-b-0">
-          <Tooltip
-            title={
-              typeof course.profFirst !== 'undefined' &&
-              typeof course.profLast !== 'undefined' &&
-              (rmp !== undefined &&
-              rmp.state === 'done' &&
-              rmp.data.teacherRatingTags.length > 0
-                ? 'Tags: ' +
-                  rmp.data.teacherRatingTags
-                    .sort((a, b) => b.tagCount - a.tagCount)
-                    .slice(0, 3)
-                    .map((tag) => tag.tagName)
-                    .join(', ')
-                : 'No Tags Available')
-            }
-            placement="top"
-          >
-            <Typography
-              onClick={
-                (e) => e.stopPropagation() // prevents opening/closing the card when clicking on the text
+          <div className="flex items-center gap-1">
+            <Tooltip
+              title={
+                typeof course.profFirst !== 'undefined' &&
+                typeof course.profLast !== 'undefined' &&
+                (rmp !== undefined &&
+                rmp.state === 'done' &&
+                rmp.data.teacherRatingTags.length > 0
+                  ? 'Tags: ' +
+                    rmp.data.teacherRatingTags
+                      .sort((a, b) => b.tagCount - a.tagCount)
+                      .slice(0, 3)
+                      .map((tag) => tag.tagName)
+                      .join(', ')
+                  : 'No Tags Available')
               }
-              className="leading-tight text-lg text-gray-600 dark:text-gray-200 cursor-text w-fit"
+              placement="top"
             >
-              {searchQueryLabel(course) +
-                ((typeof course.profFirst === 'undefined' &&
-                  typeof course.profLast === 'undefined') ||
-                (typeof course.prefix === 'undefined' &&
-                  typeof course.number === 'undefined')
-                  ? ' (Overall)'
-                  : '')}
-            </Typography>
-          </Tooltip>
+              <Typography
+                onClick={
+                  (e) => e.stopPropagation() // prevents opening/closing the card when clicking on the text
+                }
+                className="leading-tight text-lg text-gray-600 dark:text-gray-200 cursor-text w-fit"
+              >
+                {searchQueryLabel(course) +
+                  ((typeof course.profFirst === 'undefined' &&
+                    typeof course.profLast === 'undefined') ||
+                  (typeof course.prefix === 'undefined' &&
+                    typeof course.number === 'undefined')
+                    ? ' (Overall)'
+                    : '')}
+              </Typography>
+            </Tooltip>
+            {((typeof grades === 'undefined' || grades.state === 'error') && (
+              <></>
+            )) ||
+              (grades.state === 'loading' && (
+                <Skeleton
+                  variant="rounded"
+                  className="rounded-full px-1 py-1 ml-1 w-8 block"
+                >
+                  <Typography className="text-xs w-6">U25</Typography>
+                </Skeleton>
+              )) ||
+              (grades.state === 'done' && (
+                <Tooltip
+                  title={
+                    'Last taught in: ' +
+                    displayAcademicSessionName(
+                      grades.data.most_recent_semester,
+                      false,
+                    )
+                  }
+                  placement="top"
+                >
+                  <Typography className="text-xs text-black text-center rounded-full px-1 py-1 ml-1 w-8 block bg-cornflower-50">
+                    {grades.data.most_recent_semester}
+                  </Typography>
+                </Tooltip>
+              )) ||
+              null}
+          </div>
         </TableCell>
         <TableCell align="center" className="border-b-0">
           {((typeof grades === 'undefined' || grades.state === 'error') && (
