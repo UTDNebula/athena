@@ -18,7 +18,7 @@ import type { GenericFetchedData, GradesType } from '@/pages/dashboard/index';
 
 const fallbackSrc = 'https://profiles.utdallas.edu/img/default.png';
 
-interface ProfessorInterface {
+export interface ProfessorInterface {
   _id: string;
   email: string;
   first_name: string;
