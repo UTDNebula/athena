@@ -149,9 +149,9 @@ function calculateGrades(grades: GradesData, academicSessions?: string[]) {
   const GPALookup = [
     4, 4, 3.67, 3.33, 3, 2.67, 2.33, 2, 1.67, 1.33, 1, 0.67, 0,
   ];
-  let gpa = -1;
+  let mean_gpa = -1;
   if (total !== 0) {
-    gpa =
+    mean_gpa =
       GPALookup.reduce(
         (accumulator, currentValue, index) =>
           accumulator + currentValue * grade_distribution[index],
@@ -160,8 +160,20 @@ function calculateGrades(grades: GradesData, academicSessions?: string[]) {
       (total - grade_distribution[grade_distribution.length - 1]);
   }
 
+  let median_gpa = -1;
+  let medianIndex = -1;
+  if (total != 0) {
+    let i = Math.floor(total / 2);
+    while (i > 0) {
+      medianIndex++;
+      i -= grade_distribution[medianIndex];
+    }
+    median_gpa = GPALookup[medianIndex];
+  }
+
   return {
-    gpa: gpa,
+    mean_gpa: mean_gpa,
+    gpa: median_gpa,
     total: total,
     grade_distribution: grade_distribution,
   };
