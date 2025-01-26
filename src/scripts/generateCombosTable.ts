@@ -1,9 +1,9 @@
 /*
 Build the combos table
 */
-import * as fs from 'fs';
+import { writeFileSync } from 'fs';
 
-import aggregatedData from '@/data/autocomplete_data.json';
+import aggregatedData from '@/data/aggregated_data.json';
 import {
   type SearchQuery,
   searchQueryEqual,
@@ -147,5 +147,5 @@ for (const key in table) {
   sortResults(key);
 }
 
-fs.writeFileSync('src/data/combo_table.json', JSON.stringify(table));
+writeFileSync('src/data/combo_table.json', JSON.stringify(table));
 console.log('Combo table generation done.');

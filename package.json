@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "fetchdata": "ts-node -O \"{\\\"module\\\":\\\"commonjs\\\"}\" src/scripts/fetchAggregatedData.ts",
     "buildautocomplete": "ts-node src/scripts/generateAutocompleteGraph.ts",
     "buildcombos": "ts-node -O \"{\\\"module\\\":\\\"commonjs\\\"}\" src/scripts/generateCombosTable.ts",
     "start": "next start",
