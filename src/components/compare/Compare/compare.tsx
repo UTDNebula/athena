@@ -1,3 +1,10 @@
+import FaceIcon from '@mui/icons-material/Face';
+import Face2Icon from '@mui/icons-material/Face2';
+import Face3Icon from '@mui/icons-material/Face3';
+import Face4Icon from '@mui/icons-material/Face4';
+import Face5Icon from '@mui/icons-material/Face5';
+import Face6Icon from '@mui/icons-material/Face6';
+import { Grid2 as Grid } from '@mui/material';
 import React from 'react';
 
 import CompareTable from '@/components/compare/CompareTable/compareTable';
@@ -32,7 +39,31 @@ const Compare = ({
   colorMap,
 }: CompareProps) => {
   if (courses.length === 0) {
-    return <p>Click a checkbox to add something to compare.</p>;
+    return (
+      <Grid container spacing={4} className="px-4">
+        <Grid size={12} className="flex justify-center">
+          <p>Click a checkbox to add something to compare.</p>
+        </Grid>
+        <Grid size={4} className="flex justify-center">
+          <FaceIcon fontSize="large" />
+        </Grid>
+        <Grid size={4} className="flex justify-center">
+          <Face2Icon fontSize="large" />
+        </Grid>
+        <Grid size={4} className="flex justify-center">
+          <Face3Icon fontSize="large" />
+        </Grid>
+        <Grid size={4} className="flex justify-center">
+          <Face4Icon fontSize="large" />
+        </Grid>
+        <Grid size={4} className="flex justify-center">
+          <Face5Icon fontSize="large" />
+        </Grid>
+        <Grid size={4} className="flex justify-center">
+          <Face6Icon fontSize="large" />
+        </Grid>
+      </Grid>
+    );
   }
 
   return (
