@@ -4,9 +4,10 @@ import {
   InputLabel,
   ListItemText,
   MenuItem,
+  Select,
   Tooltip,
 } from '@mui/material';
-import Select, { type SelectChangeEvent } from '@mui/material/Select';
+import type { SelectChangeEvent } from '@mui/material/Select';
 import { useRouter } from 'next/router';
 import React, { useEffect, useState } from 'react';
 

@@ -1,28 +1,13 @@
-import {
-  styled,
-  TableSortLabel as _TableSortLabel,
-  type TableSortLabelProps,
-  useMediaQuery,
-} from '@mui/material';
-import React from 'react';
+import { styled, TableSortLabel } from '@mui/material';
 
-function TableSortLabel(props: TableSortLabelProps) {
-  //Selected arrow color
-  const sortArrowColor = useMediaQuery('(prefers-color-scheme: dark)')
-    ? 'white'
-    : 'black';
+//Change arrow color for TableSortLabel
+const StyledTableSortLabel = styled(TableSortLabel)({
+  '& .MuiTableSortLabel-icon': {
+    opacity: 0.5, // Ensure the arrow is always visible
+  },
+  '&.Mui-active .MuiTableSortLabel-icon': {
+    color: 'var(--mui-palette-text-primary)', // Brighten the arrow
+  },
+});
 
-  //Change arrow color for TableSortLabel
-  const StyledTableSortLabel = styled(_TableSortLabel)({
-    '& .MuiTableSortLabel-icon': {
-      opacity: 0.5, // Ensure the arrow is always visible
-    },
-    '&.Mui-active .MuiTableSortLabel-icon': {
-      color: sortArrowColor, // Brighten the arrow
-    },
-  });
-
-  return <StyledTableSortLabel {...props} />;
-}
-
-export default TableSortLabel;
+export default StyledTableSortLabel;

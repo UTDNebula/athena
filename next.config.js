@@ -2,7 +2,15 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['profiles.utdallas.edu'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'profiles.utdallas.edu',
+        port: '',
+        pathname: '/**',
+        search: '',
+      },
+    ],
   },
 };
 

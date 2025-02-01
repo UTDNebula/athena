@@ -1,6 +1,7 @@
 import type { ReactJSXElement } from '@emotion/react/types/jsx-namespace';
+import { Collapse, useMediaQuery } from '@mui/material';
 import { AnimatePresence, motion } from 'framer-motion';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { TabNavMenu } from '@/components/navigation/tabNavMenu/tabNavMenu';
 
@@ -69,6 +70,10 @@ const Carousel = ({ names, children, compareLength }: CarouselProps) => {
     });
   };
 
+  const isSmallScreen = useMediaQuery('(max-width: 600px)');
+  const [open, setOpen] = useState(false);
+  useEffect(() => setOpen(!isSmallScreen), [isSmallScreen]);
+
   return (
     <>
       <TabNavMenu
@@ -76,34 +81,38 @@ const Carousel = ({ names, children, compareLength }: CarouselProps) => {
         options={Array.isArray(names) ? names : [names]}
         turner={turn}
         compareLength={compareLength}
+        open={open}
+        setOpen={setOpen}
       />
-      <AnimatePresence>
-        <div className="p-4 lg:p-6">
-          <motion.div
-            key={currentCard}
-            custom={direction}
-            variants={variants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{
-              x: { type: 'spring', stiffness: 300, damping: 30 },
-              opacity: { duration: 0.2 },
-            }}
-          >
-            {Array.isArray(children)
-              ? children.map((child, index) => (
-                  <div
-                    key={index}
-                    className={index === currentCard ? 'block' : 'hidden'}
-                  >
-                    {child}
-                  </div>
-                ))
-              : children}
-          </motion.div>
-        </div>
-      </AnimatePresence>
+      <Collapse in={open}>
+        <AnimatePresence>
+          <div className="p-4 lg:p-6">
+            <motion.div
+              key={currentCard}
+              custom={direction}
+              variants={variants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{
+                x: { type: 'spring', stiffness: 300, damping: 30 },
+                opacity: { duration: 0.2 },
+              }}
+            >
+              {Array.isArray(children)
+                ? children.map((child, index) => (
+                    <div
+                      key={index}
+                      className={index === currentCard ? 'block' : 'hidden'}
+                    >
+                      {child}
+                    </div>
+                  ))
+                : children}
+            </motion.div>
+          </div>
+        </AnimatePresence>
+      </Collapse>
     </>
   );
 };

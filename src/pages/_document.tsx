@@ -1,7 +1,10 @@
 import { Head, Html, Main, NextScript } from 'next/document';
 import React from 'react';
+import resolveConfig from 'tailwindcss/resolveConfig';
 
 import tailwindConfig from '@/../tailwind.config.js';
+
+const fullTailwindConfig = resolveConfig(tailwindConfig);
 
 function Document() {
   return (
@@ -13,7 +16,8 @@ function Document() {
         />
         <meta
           name="theme-color"
-          content={tailwindConfig.theme.extend.colors.royal}
+          // eslint-disable-next-line  @typescript-eslint/no-explicit-any
+          content={(fullTailwindConfig.theme.colors as any).royal as string}
         />
         <meta
           property="og:description"

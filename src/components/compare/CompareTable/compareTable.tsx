@@ -141,7 +141,7 @@ function GradeOrRmpRow<T>({
                 <Typography className="text-base">{loadingFiller}</Typography>
               </Skeleton>
             )) ||
-            (value.state === 'done' &&
+            (value.state === 'done' && getValue(value.data) !== -1 ? (
               (name !== 'GPA'
                 ? (value.data as RMPInterface).numRatings > 0
                 : true) && ( // do not display RMP data (non-GPA data) if there are no reviews
@@ -165,7 +165,10 @@ function GradeOrRmpRow<T>({
                     {formatValue(getValue(value.data))}
                   </Typography>
                 </Tooltip>
-              )) ||
+              )
+            ) : (
+              <Typography className="text-base opacity-0">0.00</Typography>
+            )) ||
             null}
         </TableCell>
       ))}

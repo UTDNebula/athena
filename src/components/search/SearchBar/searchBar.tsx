@@ -1,8 +1,14 @@
-import { Autocomplete, Button, TextField, Tooltip } from '@mui/material';
+import {
+  Autocomplete,
+  Button,
+  CircularProgress,
+  TextField,
+  Tooltip,
+} from '@mui/material';
 import match from 'autosuggest-highlight/match';
 import parse from 'autosuggest-highlight/parse';
 import { useRouter } from 'next/router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { type Key, useEffect, useRef, useState } from 'react';
 
 import {
   decodeSearchQueryLabel,
@@ -15,8 +21,10 @@ import {
  * Props type used by the SearchBar component
  */
 interface SearchProps {
-  manageQuery?: 'onSelect' | 'onChange';
+  manageQuery?: 'onSelect';
   onSelect?: (value: SearchQuery[]) => void;
+  resultsLoading?: 'loading' | 'done' | 'error';
+  setResultsLoading?: () => void;
   className?: string;
   input_className?: string;
   autoFocus?: boolean;
@@ -31,6 +39,8 @@ interface SearchProps {
 const SearchBar = ({
   manageQuery,
   onSelect,
+  resultsLoading,
+  setResultsLoading,
   className,
   input_className,
   autoFocus,
@@ -63,6 +73,46 @@ const SearchBar = ({
       setValue(array.map((el) => decodeSearchQueryLabel(el)));
     }
   }, [router.isReady, router.query.searchTerms]); // useEffect is called every time the query changes
+
+  // updateValue -> onSelect_internal -> updateQueries - clicking enter on an autocomplete suggestion in topMenu Searchbar
+  // updateValue -> onSelect_internal -> onSelect (custom function) - clicking enter on an autocomplete suggestion in home page SearchBar
+  // params.inputProps.onKeyDown -> handleKeyDown -> onSelect_internal -> updateQueries/onSelect - clicking enter in the SearchBar
+  // Button onClick -> onSelect_internal -> updateQueries/onSelect - Pressing the "Search" Button
+
+  //change all values
+  function updateValue(newValue: SearchQuery[]) {
+    setValue(newValue);
+    onSelect_internal(newValue); // clicking enter to select a autocomplete suggestion triggers a new search (it also 'Enters' for the searchbar)
+  }
+
+  function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'Enter' && inputValue === '') {
+      event.preventDefault();
+      event.stopPropagation();
+      onSelect_internal(value);
+    }
+  }
+
+  //update parent and queries
+  function onSelect_internal(newValue: SearchQuery[]) {
+    // called by updateValue(), handleKeyDown(), and is assigned to the button onClick action
+    if (
+      router.query.searchTerms ==
+      newValue.map((el) => searchQueryLabel(el)).join(',')
+    )
+      // do not initiate a new search when the searchTerms haven't changed
+      return;
+    setErrorTooltip(!newValue.length); //Check if tooltip needs to be displayed
+    if (newValue.length && typeof setResultsLoading !== 'undefined') {
+      setResultsLoading();
+    }
+    if (typeof onSelect !== 'undefined') {
+      onSelect(newValue);
+    }
+    if (newValue.length && manageQuery === 'onSelect') {
+      updateQueries(newValue);
+    }
+  }
 
   //update url with what's in value
   function updateQueries(newValue: SearchQuery[]) {
@@ -147,38 +197,12 @@ const SearchBar = ({
       });
   }
 
-  //update parent and queries
-  function onChange_internal(newValue: SearchQuery[]) {
-    if (manageQuery === 'onChange') {
-      updateQueries(newValue);
-    }
-  }
-
   //add value
   function addValue(newValue: SearchQuery) {
     setValue((old) => {
       const oldAndNew = [...old, newValue];
-      onChange_internal(oldAndNew);
       return oldAndNew;
     });
-  }
-
-  //change all values
-  function updateValue(newValue: SearchQuery[]) {
-    if (newValue.length) setErrorTooltip(false); //close the tooltip if there is at least 1 valid search term
-    setValue(newValue);
-    onSelect_internal(newValue); // clicking enter to select a autocomplete suggestion triggers a new search (it also 'Enters' for the searchbar)
-  }
-
-  //update parent and queries
-  function onSelect_internal(newValue: SearchQuery[]) {
-    setErrorTooltip(!newValue.length); //Check if tooltip needs to be displayed
-    if (typeof onSelect !== 'undefined') {
-      onSelect(newValue);
-    }
-    if (newValue.length && manageQuery === 'onSelect') {
-      updateQueries(newValue);
-    }
   }
 
   useEffect(() => {
@@ -191,7 +215,7 @@ const SearchBar = ({
         multiple
         freeSolo
         loading={loading}
-        //highligh first option to add with enter
+        //highlight first option to add with enter
         autoHighlight={true}
         clearOnBlur={false}
         className="grow"
@@ -233,6 +257,7 @@ const SearchBar = ({
           loadNewOptions(newInputValue);
         }}
         renderInput={(params) => {
+          params.inputProps.onKeyDown = handleKeyDown;
           return (
             <TextField
               {...params}
@@ -270,7 +295,7 @@ const SearchBar = ({
             }
           }
         }}
-        renderOption={(props, option, { inputValue }) => {
+        renderOption={(props: { key: Key }, option, { inputValue }) => {
           const text =
             typeof option === 'string' ? option : searchQueryLabel(option);
           //add spaces between prefix and course number
@@ -289,8 +314,9 @@ const SearchBar = ({
               ),
           );
           const parts = parse(text, matches);
+          const { key, ...otherProps } = props;
           return (
-            <li {...props}>
+            <li key={key} {...otherProps}>
               {parts.map((part, index) => (
                 <span
                   key={index}
@@ -320,12 +346,16 @@ const SearchBar = ({
           disableElevation
           size="large"
           className={
-            'shrink-0 normal-case bg-royal hover:bg-royalDark' +
+            'h-11 w-[5.5rem] shrink-0 normal-case bg-royal hover:bg-royalDark' +
             (value.length == 0 ? ' text-cornflower-200' : '')
           } //darkens the text when no valid search terms are entered (pseudo-disables the search button)
           onClick={() => onSelect_internal(value)}
         >
-          Search
+          {resultsLoading === 'loading' ? (
+            <CircularProgress className="h-6 w-6 text-cornflower-50" />
+          ) : (
+            'Search'
+          )}
         </Button>
       </Tooltip>
     </div>

@@ -34,12 +34,10 @@ import type { GenericFetchedData, GradesType } from '@/pages/dashboard/index';
 function LoadingRow() {
   return (
     <TableRow>
-      <TableCell>
-        <IconButton aria-label="expand row" size="small" disabled>
+      <TableCell className="flex gap-1">
+        <IconButton aria-label="expand row" size="medium" disabled>
           <KeyboardArrowIcon />
         </IconButton>
-      </TableCell>
-      <TableCell>
         <Checkbox disabled />
       </TableCell>
       <TableCell component="th" scope="row" className="w-full">
@@ -108,50 +106,54 @@ function Row({
         className="cursor-pointer"
       >
         <TableCell className="border-b-0">
-          <Tooltip
-            title={open ? 'Minimize Result' : 'Expand Result'}
-            placement="top"
-          >
-            <IconButton
-              aria-label="expand row"
-              size="small"
-              onClick={() => setOpen(!open)}
-              className={'transition-transform' + (open ? ' rotate-90' : '')}
+          <div className="flex items-center gap-1">
+            <Tooltip
+              title={open ? 'Minimize Result' : 'Expand Result'}
+              placement="top"
             >
-              <KeyboardArrowIcon />
-            </IconButton>
-          </Tooltip>
-        </TableCell>
-        <TableCell className="border-b-0">
-          <Tooltip
-            title={inCompare ? 'Remove from Compare' : 'Add to Compare'}
-            placement="top"
-          >
-            <Checkbox
-              checked={inCompare}
-              onClick={(e) => {
-                e.stopPropagation(); // prevents opening/closing the card when clicking on the compare checkbox
-                if (inCompare) {
-                  removeFromCompare(course);
-                } else {
-                  addToCompare(course);
+              <IconButton
+                aria-label="expand row"
+                size="medium"
+                onClick={(e) => {
+                  e.stopPropagation(); // prevents double opening/closing
+                  setOpen(!open);
+                }}
+                className={'transition-transform' + (open ? ' rotate-90' : '')}
+              >
+                <KeyboardArrowIcon fontSize="inherit" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip
+              title={inCompare ? 'Remove from Compare' : 'Add to Compare'}
+              placement="top"
+            >
+              <Checkbox
+                checked={inCompare}
+                onClick={(e) => {
+                  e.stopPropagation(); // prevents opening/closing the card when clicking on the compare checkbox
+                  if (inCompare) {
+                    removeFromCompare(course);
+                  } else {
+                    addToCompare(course);
+                  }
+                }}
+                disabled={
+                  (typeof grades !== 'undefined' &&
+                    grades.state === 'loading') ||
+                  (typeof rmp !== 'undefined' && rmp.state === 'loading')
                 }
-              }}
-              disabled={
-                (typeof grades !== 'undefined' && grades.state === 'loading') ||
-                (typeof rmp !== 'undefined' && rmp.state === 'loading')
-              }
-              sx={
-                color
-                  ? {
-                      '&.Mui-checked': {
-                        color: color,
-                      },
-                    }
-                  : undefined
-              } // Apply color if defined
-            />
-          </Tooltip>
+                sx={
+                  color
+                    ? {
+                        '&.Mui-checked': {
+                          color: color,
+                        },
+                      }
+                    : undefined
+                } // Apply color if defined
+              />
+            </Tooltip>
+          </div>
         </TableCell>
         <TableCell component="th" scope="row" className="w-full border-b-0">
           <Tooltip
@@ -446,8 +448,7 @@ const SearchResultsTable = ({
         <Table stickyHeader aria-label="collapsible table">
           <TableHead>
             <TableRow>
-              <TableCell />
-              <TableCell>Compare</TableCell>
+              <TableCell>Actions</TableCell>
               <TableCell>
                 <TableSortLabel
                   active={orderBy === 'name'}

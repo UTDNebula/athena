@@ -1,4 +1,4 @@
-import { Card, Grid2 as Grid, useMediaQuery } from '@mui/material';
+import { Card, Grid2 as Grid } from '@mui/material';
 import type { NextPage, NextPageContext } from 'next';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -378,8 +378,12 @@ export const Dashboard: NextPage<{ pageTitle: string }> = ({
             getData(res, controller);
           })
           .catch((error) => {
-            setResults({ state: 'error', data: [] });
-            console.error('Search Results', error);
+            if (
+              !(error instanceof DOMException && error.name == 'AbortError')
+            ) {
+              setResults({ state: 'error', data: [] });
+              console.error('Search Results', error);
+            }
           });
       } else if (professorSearchTerms.length > 0) {
         fetchSearchResults(professorSearchTerms, courseSearchTerms, controller)
@@ -391,8 +395,12 @@ export const Dashboard: NextPage<{ pageTitle: string }> = ({
             getData(res, controller);
           })
           .catch((error) => {
-            setResults({ state: 'error', data: [] });
-            console.error('Search Results', error);
+            if (
+              !(error instanceof DOMException && error.name == 'AbortError')
+            ) {
+              setResults({ state: 'error', data: [] });
+              console.error('Search Results', error);
+            }
           });
       }
       return () => {
@@ -535,7 +543,11 @@ export const Dashboard: NextPage<{ pageTitle: string }> = ({
           professor: isCourse ? old.professor : { [rhsKey]: rhsGradeFetched },
         }));
       })
-      .catch((err) => console.error('Grades data for ' + rhsKey, err));
+      .catch((error) => {
+        if (!(error instanceof DOMException && error.name == 'AbortError')) {
+          console.error('Grades data for ' + rhsKey, error);
+        }
+      });
   }
 
   //Store rmp scores by profs
@@ -579,7 +591,9 @@ export const Dashboard: NextPage<{ pageTitle: string }> = ({
       .catch((error) => {
         //Set loading status to error
         addToGrades(searchQueryLabel(course), { state: 'error' });
-        console.error('Grades data for ' + searchQueryLabel(course), error);
+        if (!(error instanceof DOMException && error.name == 'AbortError')) {
+          console.error('Grades data for ' + searchQueryLabel(course), error);
+        }
       });
   }
 
@@ -601,7 +615,9 @@ export const Dashboard: NextPage<{ pageTitle: string }> = ({
       .catch((error) => {
         //Set loading status to error
         addToRmp(searchQueryLabel(professor), { state: 'error' });
-        console.error('RMP data for ' + searchQueryLabel(professor), error);
+        if (!(error instanceof DOMException && error.name == 'AbortError')) {
+          console.error('RMP data for ' + searchQueryLabel(professor), error);
+        }
       });
   }
 
@@ -612,7 +628,7 @@ export const Dashboard: NextPage<{ pageTitle: string }> = ({
     for (const result of results) {
       const entry = grades[searchQueryLabel(result)];
       //Not already loading
-      if (typeof entry === 'undefined') {
+      if (typeof entry === 'undefined' || entry.state === 'error') {
         fetchAndStoreGradesData(result, controller);
       } else {
         //Recalc gpa and such from past stored data for new page
@@ -653,8 +669,9 @@ export const Dashboard: NextPage<{ pageTitle: string }> = ({
       professorsInResults.push(professors[0]);
     }
     for (const professor of professorsInResults) {
+      const entry = rmp[searchQueryLabel(professor)];
       //Not already loading
-      if (typeof rmp[searchQueryLabel(professor)] === 'undefined') {
+      if (typeof entry === 'undefined' || entry.state === 'error') {
         fetchAndStoreRmpData(professor, controller);
       }
     }
@@ -777,7 +794,6 @@ export const Dashboard: NextPage<{ pageTitle: string }> = ({
 
   const panelLRef = useRef<ImperativePanelHandle>(null);
   const panelRRef = useRef<ImperativePanelHandle>(null);
-  const isSmallScreen = useMediaQuery('(max-width: 600px)');
   // Resets RHS & LHS to 50/50 when double clicking handle
   const handleResizeDoubleClick = () => {
     panelLRef.current?.resize(50);
@@ -789,7 +805,11 @@ export const Dashboard: NextPage<{ pageTitle: string }> = ({
   //Main content: loading, error, or normal
   let contentComponent;
 
-  if (courses.length === 0 && professors.length === 0) {
+  if (
+    courses.length === 0 &&
+    professors.length === 0 &&
+    results.state !== 'loading'
+  ) {
     contentComponent = <DashboardEmpty />;
   } else if (results.state === 'error') {
     contentComponent = <DashboardError />;
@@ -861,32 +881,32 @@ export const Dashboard: NextPage<{ pageTitle: string }> = ({
           </Grid>
           <Grid size={{ xs: false, sm: 6, md: 6 }}></Grid>
         </Grid>
-        {isSmallScreen ? (
-          <div>
-            {carousel}
+        <div className="sm:hidden">
+          {carousel}
+          {searchResultsTable}
+        </div>
+        <PanelGroup
+          direction="horizontal"
+          className="hidden sm:flex overflow-visible"
+        >
+          <Panel ref={panelLRef} minSize={40} defaultSize={50}>
             {searchResultsTable}
-          </div>
-        ) : (
-          <PanelGroup direction="horizontal" className="overflow-visible">
-            <Panel ref={panelLRef} minSize={40} defaultSize={50}>
-              {searchResultsTable}
-            </Panel>
-            <PanelResizeHandle
-              className="mt-4 p-1 mx-1 w-0.5 rounded-full opacity-25 data-[resize-handle-state=drag]:opacity-50 transition ease-in-out bg-transparent hover:bg-royal data-[resize-handle-state=drag]:bg-royal"
-              onDoubleClick={handleResizeDoubleClick}
-            />
-            <Panel
-              className="overflow-visible min-w-0"
-              ref={panelRRef}
-              minSize={30}
-              defaultSize={50}
-            >
-              <div className="sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto mt-4">
-                {carousel}
-              </div>
-            </Panel>
-          </PanelGroup>
-        )}
+          </Panel>
+          <PanelResizeHandle
+            className="mt-4 p-1 mx-1 w-0.5 rounded-full opacity-25 data-[resize-handle-state=drag]:opacity-50 transition ease-in-out bg-transparent hover:bg-royal data-[resize-handle-state=drag]:bg-royal"
+            onDoubleClick={handleResizeDoubleClick}
+          />
+          <Panel
+            className="overflow-visible min-w-0"
+            ref={panelRRef}
+            minSize={30}
+            defaultSize={50}
+          >
+            <div className="sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto mt-4">
+              {carousel}
+            </div>
+          </Panel>
+        </PanelGroup>
       </>
     );
   }
@@ -913,7 +933,10 @@ export const Dashboard: NextPage<{ pageTitle: string }> = ({
         />
       </Head>
       <div className="w-full bg-light h-full">
-        <TopMenu />
+        <TopMenu
+          resultsLoading={results.state}
+          setResultsLoading={() => setResults({ state: 'loading' })}
+        />
         <main className="p-4">{contentComponent}</main>
       </div>
     </>

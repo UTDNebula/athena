@@ -2,7 +2,7 @@ import type { NextPage } from 'next';
 import Head from 'next/head';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import Background from '@/../public/background.png';
 import SearchBar from '@/components/search/SearchBar/searchBar';
@@ -10,6 +10,8 @@ import {
   type SearchQuery,
   searchQueryLabel,
 } from '@/modules/SearchQuery/SearchQuery';
+
+import type { GenericFetchedData } from './dashboard';
 
 /**
  * Returns the home page with Nebula Branding, waved background, and SearchBar Components
@@ -28,6 +30,11 @@ const Home: NextPage = () => {
       });
     }
   }
+
+  const [results, setResults] = useState<GenericFetchedData<SearchQuery[]>>({
+    state: 'done',
+    data: [],
+  }); // essentially a dummy state. Used only for the loading animation to start in homescreen before navigation to the dashboard
 
   useEffect(() => {
     router.prefetch('/dashboard');
@@ -73,6 +80,8 @@ const Home: NextPage = () => {
             // eslint-disable-next-line jsx-a11y/no-autofocus
             autoFocus={true}
             onSelect={searchOptionChosen}
+            resultsLoading={results.state}
+            setResultsLoading={() => setResults({ state: 'loading' })}
             input_className="[&>.MuiInputBase-root]:bg-white [&>.MuiInputBase-root]:dark:bg-haiti"
           />
         </div>
