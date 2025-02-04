@@ -27,4 +27,13 @@ body,
   .bg-darken {
     background-color: rgba(0, 0, 0, 0.6);
   }
+
+  .tutorial-raise {
+    position: relative;
+    z-index: calc(var(--mui-zIndex-modal) + 1);
+    scroll-margin: 10rem;
+  }
+  .tutorial-table {
+    background-color: var(--mui-palette-background-paper);
+  }
 }

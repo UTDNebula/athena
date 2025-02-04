@@ -70,6 +70,7 @@ type RowProps = {
   addToCompare: (arg0: SearchQuery) => void;
   removeFromCompare: (arg0: SearchQuery) => void;
   color?: string;
+  showTutorial: boolean;
 };
 
 function Row({
@@ -80,6 +81,7 @@ function Row({
   addToCompare,
   removeFromCompare,
   color,
+  showTutorial,
 }: RowProps) {
   const [open, setOpen] = useState(false);
 
@@ -104,8 +106,12 @@ function Row({
       <TableRow
         onClick={() => setOpen(!open)} // opens/closes the card by clicking anywhere on the row
         className="cursor-pointer"
+        data-tutorial-id={showTutorial && 'result'}
       >
-        <TableCell className="border-b-0">
+        <TableCell
+          className="border-b-0"
+          data-tutorial-id={showTutorial && 'actions'}
+        >
           <div className="flex items-center gap-1">
             <Tooltip
               title={open ? 'Minimize Result' : 'Expand Result'}
@@ -258,6 +264,7 @@ function Row({
 
 type SearchResultsTableProps = {
   resultsLoading: 'loading' | 'done';
+  numSearches: number;
   includedResults: SearchQuery[];
   grades: { [key: string]: GenericFetchedData<GradesType> };
   rmp: { [key: string]: GenericFetchedData<RMPInterface> };
@@ -269,6 +276,7 @@ type SearchResultsTableProps = {
 
 const SearchResultsTable = ({
   resultsLoading,
+  numSearches,
   includedResults,
   grades,
   rmp,
@@ -500,7 +508,7 @@ const SearchResultsTable = ({
           </TableHead>
           <TableBody>
             {resultsLoading === 'done'
-              ? sortedResults.map((result) => (
+              ? sortedResults.map((result, index) => (
                   <Row
                     key={searchQueryLabel(result)}
                     course={result}
@@ -514,6 +522,7 @@ const SearchResultsTable = ({
                     addToCompare={addToCompare}
                     removeFromCompare={removeFromCompare}
                     color={colorMap[searchQueryLabel(result)]}
+                    showTutorial={index === numSearches}
                   />
                 ))
               : Array(10)

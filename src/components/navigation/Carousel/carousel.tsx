@@ -70,7 +70,7 @@ const Carousel = ({ names, children, compareLength }: CarouselProps) => {
     });
   };
 
-  const isSmallScreen = useMediaQuery('(max-width: 600px)');
+  const isSmallScreen = useMediaQuery('(max-width: 640px)');
   const [open, setOpen] = useState(false);
   useEffect(() => setOpen(!isSmallScreen), [isSmallScreen]);
 
