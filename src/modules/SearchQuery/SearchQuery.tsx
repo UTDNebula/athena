@@ -11,6 +11,11 @@ export type Professor = {
   profLast: string;
 };
 
+export type Course = {
+  prefix: string;
+  number: string;
+};
+
 export function convertToProfOnly(
   searchQuery: SearchQuery,
 ): Professor | Record<string, never> {
@@ -20,6 +25,18 @@ export function convertToProfOnly(
   return {
     profFirst: searchQuery.profFirst as string,
     profLast: searchQuery.profLast as string,
+  };
+}
+
+export function convertToCourseOnly(
+  searchQuery: SearchQuery,
+): Course | Record<string, never> {
+  if (!('prefix' in searchQuery && 'number' in searchQuery)) {
+    return {};
+  }
+  return {
+    prefix: searchQuery.prefix as string,
+    number: searchQuery.number as string,
   };
 }
 

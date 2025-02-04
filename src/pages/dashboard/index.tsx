@@ -16,8 +16,10 @@ import DashboardError from '@/components/dashboard/DashboardError/dashboardError
 import Carousel from '@/components/navigation/Carousel/carousel';
 import TopMenu from '@/components/navigation/topMenu/topMenu';
 import CourseOverview from '@/components/overview/CourseOverview/courseOverview';
-import ProfessorOverview from '@/components/overview/ProfessorOverview/professorOverview';
-import Filters from '@/components/search/Filters/filters';
+import ProfessorOverview, {
+  type ProfessorInterface,
+} from '@/components/overview/ProfessorOverview/professorOverview';
+import Filters, { compareSemesters } from '@/components/search/Filters/filters';
 import SearchResultsTable from '@/components/search/SearchResultsTable/searchResultsTable';
 import { compareColors } from '@/modules/colors/colors';
 import fetchWithCache, {
@@ -32,8 +34,10 @@ import {
   searchQueryEqual,
   searchQueryLabel,
 } from '@/modules/SearchQuery/SearchQuery';
+import type { CourseData } from '@/pages/api/course';
 import type { GradesData } from '@/pages/api/grades';
 import type { RMPInterface } from '@/pages/api/ratemyprofessorScraper';
+import type { SectionData } from '@/pages/api/section';
 
 //Limit cached number of grades and rmp data entries
 const MAX_ENTRIES = 1000;
@@ -164,6 +168,9 @@ function calculateGrades(grades: GradesData, academicSessions?: string[]) {
     gpa: gpa,
     total: total,
     grade_distribution: grade_distribution,
+    most_recent_semester: grades
+      .map((session) => session._id)
+      .sort((a, b) => compareSemesters(b, a))[0],
   };
 }
 export type GradesType = {
@@ -171,6 +178,7 @@ export type GradesType = {
   total: number;
   grade_distribution: number[];
   grades: GradesData;
+  most_recent_semester: string;
 };
 //Fetch grades by academic session from nebula api
 function fetchGradesData(
@@ -208,6 +216,81 @@ function fetchGradesData(
       grades: response.data, //type GradesData
     };
   });
+}
+
+//Fetch courses from nebula api
+function fetchCourseData(
+  course: SearchQuery,
+  controller: AbortController,
+): Promise<CourseData[]> {
+  return fetchWithCache(
+    '/api/course?prefix=' +
+      encodeURIComponent(String(course.prefix)) +
+      '&number=' +
+      encodeURIComponent(String(course.number)),
+    cacheIndexNebula,
+    expireTime,
+    {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+      },
+    },
+  )
+    .then((response) => {
+      if (response.message !== 'success') {
+        throw new Error(response.message);
+      }
+      return response.data;
+    })
+    .then((response: CourseData[]) => {
+      response.sort((a, b) => b.catalog_year - a.catalog_year); // sort by year descending, so index 0 has the most recent year
+      return [response[0], response[1]] as CourseData[];
+    });
+
+  controller.abort();
+}
+
+//Fetch a section from nebula api
+function fetchSectionData(
+  sectionID: string,
+  controller: AbortController,
+): Promise<SectionData> {
+  return fetchWithCache(
+    '/api/section?sectionID=' + sectionID,
+    cacheIndexNebula,
+    expireTime,
+    {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+      },
+    },
+  ).then((response) => {
+    if (response.message !== 'success') {
+      throw new Error(response.message);
+    }
+    return response.data as SectionData;
+  });
+  controller.abort();
+}
+
+//Fetch all sections for a course from nebula api
+function fetchSectionsDataForCourse(
+  course: SearchQuery,
+  controller: AbortController,
+): Promise<SectionData[]> {
+  return fetchCourseData(course, controller).then(
+    (courseDatas: CourseData[]) => {
+      return Promise.all(
+        courseDatas.flatMap((courseData) =>
+          courseData.sections.map((sectionID) =>
+            fetchSectionData(sectionID, controller),
+          ),
+        ),
+      );
+    },
+  );
 }
 
 //Fetch RMP data from RMP
@@ -324,6 +407,10 @@ export const Dashboard: NextPage<{ pageTitle: string }> = ({
   const [courses, setCourses] = useState<SearchQuery[]>([]);
   const [professors, setProfessors] = useState<SearchQuery[]>([]);
 
+  const [sectionsForCourses, setSectionsForCourses] = useState<{
+    [key: string]: GenericFetchedData<SectionData[]>;
+  }>({});
+
   //List of course+prof combos, data on each still needs to be fetched
   const [results, setResults] = useState<GenericFetchedData<SearchQuery[]>>({
     state: 'loading',
@@ -408,6 +495,93 @@ export const Dashboard: NextPage<{ pageTitle: string }> = ({
       };
     }
   }, [router.isReady, router.query.searchTerms]);
+
+  //When course terms change, fetch the most recent sections for the courses
+  useEffect(() => {
+    const controller = new AbortController();
+    courses.map((course) =>
+      fetchSectionsDataForCourse(course, controller) // returns an array of sections for a course
+        .then((sections) => {
+          setSectionsForCourses((old) => {
+            const newVal = { ...old };
+            const key = searchQueryLabel(course);
+            if (typeof newVal[key] !== 'undefined') {
+              newVal[key] = {
+                state: 'done',
+                data: sections,
+              };
+              return newVal;
+            }
+            if (Object.keys(newVal).length >= MAX_ENTRIES) {
+              // Remove the oldest entry
+              const oldestKey = Object.keys(newVal)[0];
+              delete newVal[oldestKey];
+            }
+            newVal[key] = {
+              state: 'done',
+              data: sections,
+            };
+            return newVal;
+          });
+        }),
+    );
+    return () => {
+      controller.abort();
+    };
+  }, [courses]);
+
+  //When professor terms change, fetch all the professors' data
+  const [profsData, setProfData] = useState<{
+    [key: string]: GenericFetchedData<ProfessorInterface>;
+  }>({});
+
+  useEffect(() => {
+    if (results.state === 'done') {
+      results.data.map((professor) => {
+        setProfData((prevState) => ({
+          ...prevState,
+          [searchQueryLabel(convertToProfOnly(professor))]: {
+            state: 'loading',
+          },
+        }));
+        fetchWithCache(
+          '/api/professor?profFirst=' +
+            encodeURIComponent(String(professor.profFirst)) +
+            '&profLast=' +
+            encodeURIComponent(String(professor.profLast)),
+          cacheIndexNebula,
+          expireTime,
+          {
+            method: 'GET',
+            headers: {
+              Accept: 'application/json',
+            },
+          },
+        )
+          .then((response) => {
+            if (response.message !== 'success') {
+              throw new Error(response.message);
+            }
+            setProfData((prevState) => ({
+              ...prevState,
+              [searchQueryLabel(convertToProfOnly(professor))]: {
+                state: typeof response.data !== 'undefined' ? 'done' : 'error',
+                data: response.data as ProfessorInterface,
+              },
+            }));
+          })
+          .catch((error) => {
+            setProfData((prevState) => ({
+              ...prevState,
+              [searchQueryLabel(convertToProfOnly(professor))]: {
+                state: 'error',
+              },
+            }));
+            console.error('Professor data', error);
+          });
+      });
+    }
+  }, [results]);
 
   //Compiled list of academic sessions grade data is available for
   const [academicSessions, setAcademicSessions] = useState<string[]>([]);
@@ -853,7 +1027,9 @@ export const Dashboard: NextPage<{ pageTitle: string }> = ({
       <SearchResultsTable
         resultsLoading={results.state}
         includedResults={includedResults}
+        sectionsDataForCourse={sectionsForCourses}
         grades={grades}
+        professors={profsData}
         rmp={rmp}
         compare={compare}
         addToCompare={addToCompare}
